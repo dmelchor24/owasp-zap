@@ -92,8 +92,8 @@ def generate_html(template, zap_data):
         reference = alert.get('reference', '')
         references_html = '<br>'.join([f'<a href="{ref}">{ref}</a>' for ref in reference.split('\n') if ref.strip()])
         
-        cweid = alert.get('cweid', 0)
-        wascid = alert.get('wascid', 0)
+        cweid = int(alert.get('cweid', 0)) if alert.get('cweid') else 0
+        wascid = int(alert.get('wascid', 0)) if alert.get('wascid') else 0
         
         # Instancias
         instances_html = ""
