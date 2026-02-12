@@ -67,17 +67,17 @@ def generate_html(template, zap_data):
         flags=re.DOTALL
     )
     
-    # Reemplazar fecha - buscar el patrón completo incluyendo el texto por defecto
+    # Reemplazar fecha - patrón más flexible para manejar saltos de línea
     result_html = re.sub(
-        r'<h3>\s*<th:block\s+th:text="#\{report\.generated\([^)]+\)\}">Date, time</th:block>\s*</h3>',
+        r'<h3>\s*<th:block\s+th:text="#\{report\.generated\([^)]+\)\}">.*?</th:block>\s*</h3>',
         f'<h3>Generated on {current_date}</h3>',
         result_html,
         flags=re.DOTALL
     )
     
-    # Reemplazar versión de ZAP - buscar el patrón completo incluyendo el texto por defecto
+    # Reemplazar versión de ZAP - patrón más flexible para manejar saltos de línea
     result_html = re.sub(
-        r'<h3>\s*<th:block th:text="#\{report\.zapVersion\([^)]+\)\}">ZAP Version</th:block>\s*</h3>',
+        r'<h3>\s*<th:block\s+th:text="#\{report\.zapVersion\([^)]+\)\}">.*?</th:block>\s*</h3>',
         f'<h3>ZAP Version: {zap_data.get("@version", "Unknown")}</h3>',
         result_html,
         flags=re.DOTALL
@@ -260,8 +260,9 @@ def generate_html(template, zap_data):
 	<div class="spacer"></div>'''
     
     # Reemplazar sección de detalles de alertas
+    # Usar un patrón que capture todo hasta el cierre del bloque, incluyendo bloques anidados
     result_html = re.sub(
-        r'<th:block th:if="\$\{reportData\.isIncludeSection\(\'alertdetails\'\)\}">.*?</th:block>',
+        r'<th:block th:if="\$\{reportData\.isIncludeSection\(\'alertdetails\'\)\}">.*?</th:block>\s*</th:block>',
         alert_details_section,
         result_html,
         flags=re.DOTALL
