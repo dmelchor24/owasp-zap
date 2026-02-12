@@ -26,14 +26,6 @@ def get_risk_string(risk_level):
     }
     return risk_map.get(risk_level, "Unknown")
 
-def count_alerts_by_risk(alerts):
-    """Cuenta las alertas por nivel de riesgo"""
-    counts = {3: 0, 2: 0, 1: 0, 0: 0}
-    for alert in alerts:
-        risk = int(alert.get('risk', 0))
-        counts[risk] = counts.get(risk, 0) + 1
-    return counts
-
 def generate_html(template, zap_data):
     """Genera el HTML final reemplazando los placeholders de Thymeleaf"""
     
@@ -48,41 +40,46 @@ def generate_html(template, zap_data):
         all_alerts = []
     
     # Filtrar alertas para omitir las de nivel Informational (0)
-    alerts = [alert for alert in all_alerts if int(alert.get('risk', 0)) > 0]
+    # El campo 'riskcode' contiene el nivel de riesgo como string
+    alerts = [alert for alert in all_alerts if int(alert.get('riskcode', '0')) > 0]
     
     # Contar alertas por riesgo (solo las filtradas)
-    alert_counts = count_alerts_by_risk(alerts)
+    alert_counts = {3: 0, 2: 0, 1: 0}
+    for alert in alerts:
+        risk = int(alert.get('riskcode', '0'))
+        if risk in alert_counts:
+            alert_counts[risk] += 1
     
     # Generar fecha actual
     current_date = datetime.now().strftime('%a, %d %b %Y %H:%M:%S')
     
-    html = template
+    result_html = template
     
     # Reemplazar título
-    html = re.sub(r'<th:block th:text="\$\{reportTitle\}">.*?</th:block>', 'ZAP Scanning Report', html)
+    result_html = re.sub(r'<th:block th:text="\$\{reportTitle\}">.*?</th:block>', 'ZAP Scanning Report', result_html)
     
     # Reemplazar sitio
     site_text = f'Site: {site}' if site else ''
-    html = re.sub(
+    result_html = re.sub(
         r'<h2 th:switch="\$\{reportData\.sites == null \? 0 : reportData\.sites\.size\}">.*?</h2>',
         f'<h2>{site_text}</h2>' if site else '<h2></h2>',
-        html,
+        result_html,
         flags=re.DOTALL
     )
     
     # Reemplazar fecha
-    html = re.sub(
+    result_html = re.sub(
         r'<h3>\s*<th:block\s+th:text="#\{report\.generated\([^)]+\)\}">.*?</th:block>\s*</h3>',
         f'<h3>Generated on {current_date}</h3>',
-        html,
+        result_html,
         flags=re.DOTALL
     )
     
     # Reemplazar versión de ZAP
-    html = re.sub(
+    result_html = re.sub(
         r'<h3>\s*<th:block th:text="#\{report\.zapVersion\([^)]+\)\}">.*?</th:block>\s*</h3>',
         f'<h3>ZAP Version: {zap_data.get("@version", "Unknown")}</h3>',
-        html,
+        result_html,
         flags=re.DOTALL
     )
     
@@ -114,10 +111,10 @@ def generate_html(template, zap_data):
 	<div class="spacer-lg"></div>'''
     
     # Reemplazar sección de resumen
-    html = re.sub(
+    result_html = re.sub(
         r'<th:block th:if="\$\{reportData\.isIncludeSection\(\'alertcount\'\)\}">.*?</th:block>',
         summary_section,
-        html,
+        result_html,
         flags=re.DOTALL
     )
     
@@ -133,8 +130,8 @@ def generate_html(template, zap_data):
     
     for alert in alerts:
         plugin_id = alert.get('pluginid', '')
-        name = html.escape(alert.get('name', 'Unknown Alert'))
-        risk = int(alert.get('risk', 0))
+        name = html.escape(alert.get('alert', alert.get('name', 'Unknown Alert')))
+        risk = int(alert.get('riskcode', '0'))
         risk_name = get_risk_string(risk)
         instances = alert.get('instances', [])
         instance_count = len(instances)
@@ -151,10 +148,10 @@ def generate_html(template, zap_data):
 	<div class="spacer-lg"></div>'''
     
     # Reemplazar sección de lista de alertas
-    html = re.sub(
+    result_html = re.sub(
         r'<th:block th:if="\$\{reportData\.isIncludeSection\(\'instancecount\'\)\}">.*?</th:block>',
         alert_list_section,
-        html,
+        result_html,
         flags=re.DOTALL
     )
     
@@ -164,8 +161,8 @@ def generate_html(template, zap_data):
     
     for alert in alerts:
         plugin_id = alert.get('pluginid', '')
-        name = html.escape(alert.get('name', 'Unknown Alert'))
-        risk = int(alert.get('risk', 0))
+        name = html.escape(alert.get('alert', alert.get('name', 'Unknown Alert')))
+        risk = int(alert.get('riskcode', '0'))
         risk_name = get_risk_string(risk)
         instances = alert.get('instances', [])
         instance_count = len(instances)
@@ -175,8 +172,10 @@ def generate_html(template, zap_data):
         reference = alert.get('reference', '')
         references_html = '<br>'.join([f'<a href="{html.escape(ref)}">{html.escape(ref)}</a>' for ref in reference.split('\n') if ref.strip()])
         
-        cweid = int(alert.get('cweid', 0)) if alert.get('cweid') else 0
-        wascid = int(alert.get('wascid', 0)) if alert.get('wascid') else 0
+        cweid = alert.get('cweid', '')
+        cweid_int = int(cweid) if cweid and str(cweid).isdigit() else 0
+        wascid = alert.get('wascid', '')
+        wascid_int = int(wascid) if wascid and str(wascid).isdigit() else 0
         
         # Instancias
         instances_html = ""
@@ -214,8 +213,8 @@ def generate_html(template, zap_data):
 				<td width="80%">{other_info}</td>
 			</tr>'''
         
-        cwe_html = f'<a href="https://cwe.mitre.org/data/definitions/{cweid}.html">{cweid}</a>' if cweid > 0 else ''
-        wasc_html = str(wascid) if wascid > 0 else ''
+        cwe_html = f'<a href="https://cwe.mitre.org/data/definitions/{cweid_int}.html">{cweid_int}</a>' if cweid_int > 0 else ''
+        wasc_html = str(wascid_int) if wascid_int > 0 else ''
         
         alert_details_section += f'''
 	<table class="results">
@@ -260,14 +259,14 @@ def generate_html(template, zap_data):
 	<div class="spacer"></div>'''
     
     # Reemplazar sección de detalles de alertas
-    html = re.sub(
+    result_html = re.sub(
         r'<th:block th:if="\$\{reportData\.isIncludeSection\(\'alertdetails\'\)\}">.*?</th:block>',
         alert_details_section,
-        html,
+        result_html,
         flags=re.DOTALL
     )
     
-    return html
+    return result_html
 
 def main():
     if len(sys.argv) != 4:
@@ -283,11 +282,11 @@ def main():
     zap_data = load_zap_json(json_path)
     
     # Generar HTML
-    html = generate_html(template, zap_data)
+    html_output = generate_html(template, zap_data)
     
     # Guardar resultado
     with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(html)
+        f.write(html_output)
     
     print(f"Report generated successfully: {output_path}")
 
