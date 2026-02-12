@@ -69,7 +69,7 @@ def generate_html(template, zap_data):
     
     # Reemplazar fecha - patrón más flexible que maneja saltos de línea dentro del th:block
     result_html = re.sub(
-        r'<h3>\s*<th:block\s+th:text="#\{report\.generated\([^)]+\)\}"\s*>.*?</th:block>\s*</h3>',
+        r'<h3>\s*<th:block\s+th:text="#\{report\.generated\([^)]+\)\}">.*?</th:block>\s*</h3>',
         f'<h3>Generated on {current_date}</h3>',
         result_html,
         flags=re.DOTALL
