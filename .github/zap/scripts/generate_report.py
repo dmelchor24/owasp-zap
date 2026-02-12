@@ -168,6 +168,7 @@ def generate_html(template, zap_data):
             param = instance.get('param', '')
             attack = instance.get('attack', '')
             evidence = instance.get('evidence', '')
+            other_info = instance.get('otherinfo', '')
             
             instances_html += f'''
 			<tr>
@@ -179,7 +180,7 @@ def generate_html(template, zap_data):
 				<td width="80%">{method}</td>
 			</tr>
 			<tr>
-				<td width="20%" class="indent2">Param</td>
+				<td width="20%" class="indent2">Parameter</td>
 				<td width="80%">{param}</td>
 			</tr>
 			<tr>
@@ -189,6 +190,10 @@ def generate_html(template, zap_data):
 			<tr>
 				<td width="20%" class="indent2">Evidence</td>
 				<td width="80%">{evidence}</td>
+			</tr>
+			<tr>
+				<td width="20%" class="indent2">Other Info</td>
+				<td width="80%">{other_info}</td>
 			</tr>'''
         
         cwe_html = f'<a href="https://cwe.mitre.org/data/definitions/{cweid}.html">{cweid}</a>' if cweid > 0 else ''
