@@ -67,17 +67,17 @@ def generate_html(template, zap_data):
         flags=re.DOTALL
     )
     
-    # Reemplazar fecha
+    # Reemplazar fecha - buscar el patrón completo incluyendo el texto por defecto
     result_html = re.sub(
-        r'<h3>\s*<th:block\s+th:text="#\{report\.generated\([^)]+\)\}">.*?</th:block>\s*</h3>',
+        r'<h3>\s*<th:block\s+th:text="#\{report\.generated\([^)]+\)\}">Date, time</th:block>\s*</h3>',
         f'<h3>Generated on {current_date}</h3>',
         result_html,
         flags=re.DOTALL
     )
     
-    # Reemplazar versión de ZAP
+    # Reemplazar versión de ZAP - buscar el patrón completo incluyendo el texto por defecto
     result_html = re.sub(
-        r'<h3>\s*<th:block th:text="#\{report\.zapVersion\([^)]+\)\}">.*?</th:block>\s*</h3>',
+        r'<h3>\s*<th:block th:text="#\{report\.zapVersion\([^)]+\)\}">ZAP Version</th:block>\s*</h3>',
         f'<h3>ZAP Version: {zap_data.get("@version", "Unknown")}</h3>',
         result_html,
         flags=re.DOTALL
@@ -167,10 +167,11 @@ def generate_html(template, zap_data):
         instances = alert.get('instances', [])
         instance_count = len(instances)
         
-        description = html.escape(alert.get('desc', '')).replace('\n', '<br>')
-        solution = html.escape(alert.get('solution', '')).replace('\n', '<br>')
+        # NO escapar description, solution y reference porque ya contienen HTML válido
+        description = alert.get('desc', '').replace('\n', '<br>')
+        solution = alert.get('solution', '').replace('\n', '<br>')
         reference = alert.get('reference', '')
-        references_html = '<br>'.join([f'<a href="{html.escape(ref)}">{html.escape(ref)}</a>' for ref in reference.split('\n') if ref.strip()])
+        references_html = '<br>'.join([f'<a href="{ref}">{ref}</a>' for ref in reference.split('\n') if ref.strip()])
         
         cweid = alert.get('cweid', '')
         cweid_int = int(cweid) if cweid and str(cweid).isdigit() else 0
