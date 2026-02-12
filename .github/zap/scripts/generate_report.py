@@ -2,6 +2,7 @@
 import json
 import sys
 import re
+import html
 from datetime import datetime
 from pathlib import Path
 
@@ -54,18 +55,29 @@ def generate_html(template, zap_data):
     # Reemplazar título
     html = re.sub(r'<th:block th:text="\$\{reportTitle\}">.*?</th:block>', 'ZAP Scanning Report', html)
     
+    # Reemplazar sitio
+    site_text = f'Site: {site}' if site else ''
+    html = re.sub(
+        r'<h2 th:switch="\$\{reportData\.sites == null \? 0 : reportData\.sites\.size\}">.*?</h2>',
+        f'<h2>{site_text}</h2>' if site else '<h2></h2>',
+        html,
+        flags=re.DOTALL
+    )
+    
     # Reemplazar fecha
     html = re.sub(
-        r'<th:block\s+th:text="#\{report\.generated\([^)]+\)\}">.*?</th:block>',
-        f'Report generated at: {current_date}',
-        html
+        r'<h3>\s*<th:block\s+th:text="#\{report\.generated\([^)]+\)\}">.*?</th:block>\s*</h3>',
+        f'<h3>Generated on {current_date}</h3>',
+        html,
+        flags=re.DOTALL
     )
     
     # Reemplazar versión de ZAP
     html = re.sub(
-        r'<th:block th:text="#\{report\.zapVersion\([^)]+\)\}">.*?</th:block>',
-        f'ZAP Version: {zap_data.get("@version", "Unknown")}',
-        html
+        r'<h3>\s*<th:block th:text="#\{report\.zapVersion\([^)]+\)\}">.*?</th:block>\s*</h3>',
+        f'<h3>ZAP Version: {zap_data.get("@version", "Unknown")}</h3>',
+        html,
+        flags=re.DOTALL
     )
     
     # Generar tabla de resumen de alertas
@@ -115,7 +127,7 @@ def generate_html(template, zap_data):
     
     for alert in alerts:
         plugin_id = alert.get('pluginid', '')
-        name = alert.get('name', 'Unknown Alert')
+        name = html.escape(alert.get('name', 'Unknown Alert'))
         risk = int(alert.get('risk', 0))
         risk_name = get_risk_string(risk)
         instances = alert.get('instances', [])
@@ -146,16 +158,16 @@ def generate_html(template, zap_data):
     
     for alert in alerts:
         plugin_id = alert.get('pluginid', '')
-        name = alert.get('name', 'Unknown Alert')
+        name = html.escape(alert.get('name', 'Unknown Alert'))
         risk = int(alert.get('risk', 0))
         risk_name = get_risk_string(risk)
         instances = alert.get('instances', [])
         instance_count = len(instances)
         
-        description = alert.get('desc', '').replace('\n', '<br>')
-        solution = alert.get('solution', '').replace('\n', '<br>')
+        description = html.escape(alert.get('desc', '')).replace('\n', '<br>')
+        solution = html.escape(alert.get('solution', '')).replace('\n', '<br>')
         reference = alert.get('reference', '')
-        references_html = '<br>'.join([f'<a href="{ref}">{ref}</a>' for ref in reference.split('\n') if ref.strip()])
+        references_html = '<br>'.join([f'<a href="{html.escape(ref)}">{html.escape(ref)}</a>' for ref in reference.split('\n') if ref.strip()])
         
         cweid = int(alert.get('cweid', 0)) if alert.get('cweid') else 0
         wascid = int(alert.get('wascid', 0)) if alert.get('wascid') else 0
@@ -163,12 +175,12 @@ def generate_html(template, zap_data):
         # Instancias
         instances_html = ""
         for instance in instances:
-            uri = instance.get('uri', '')
-            method = instance.get('method', '')
-            param = instance.get('param', '')
-            attack = instance.get('attack', '')
-            evidence = instance.get('evidence', '')
-            other_info = instance.get('otherinfo', '')
+            uri = html.escape(instance.get('uri', ''))
+            method = html.escape(instance.get('method', ''))
+            param = html.escape(instance.get('param', ''))
+            attack = html.escape(instance.get('attack', ''))
+            evidence = html.escape(instance.get('evidence', ''))
+            other_info = html.escape(instance.get('otherinfo', ''))
             
             instances_html += f'''
 			<tr>
