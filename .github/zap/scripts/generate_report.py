@@ -38,8 +38,14 @@ def generate_html(template, zap_data):
     """Genera el HTML final reemplazando los placeholders de Thymeleaf"""
     
     # Extraer datos del JSON
-    site = zap_data.get('site', [''])[0] if zap_data.get('site') else ''
-    all_alerts = zap_data.get('site', [{}])[0].get('alerts', []) if zap_data.get('site') else []
+    site_list = zap_data.get('site', [])
+    if isinstance(site_list, list) and len(site_list) > 0:
+        site_data = site_list[0]
+        site = site_data.get('@name', '') if isinstance(site_data, dict) else ''
+        all_alerts = site_data.get('alerts', []) if isinstance(site_data, dict) else []
+    else:
+        site = ''
+        all_alerts = []
     
     # Filtrar alertas para omitir las de nivel Informational (0)
     alerts = [alert for alert in all_alerts if int(alert.get('risk', 0)) > 0]
