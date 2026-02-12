@@ -67,17 +67,19 @@ def generate_html(template, zap_data):
         flags=re.DOTALL
     )
     
-    # Reemplazar fecha - patrón más flexible que maneja saltos de línea dentro del th:block
+    # Reemplazar fecha - patrón simplificado que captura todo el atributo th:text
     result_html = re.sub(
-        r'<h3>\s*<th:block\s+th:text="#\{report\.generated\([^)]+\)\}">.*?</th:block>\s*</h3>',
+        r'<h3>\s*<th:block\s+th:text="[^"]+">.*?</th:block>\s*</h3>',
         f'<h3>Generated on {current_date}</h3>',
         result_html,
-        flags=re.DOTALL
+        flags=re.DOTALL,
+        count=1  # Solo reemplazar la primera ocurrencia (la fecha)
     )
     
-    # Reemplazar versión de ZAP - patrón más flexible para manejar saltos de línea
+    # Reemplazar versión de ZAP - usar el mismo patrón pero con count=1 para la segunda ocurrencia
+    # Primero necesitamos un patrón más específico para la versión
     result_html = re.sub(
-        r'<h3>\s*<th:block\s+th:text="#\{report\.zapVersion\([^)]+\)\}">.*?</th:block>\s*</h3>',
+        r'<h3>\s*<th:block\s+th:text="#\{report\.zapVersion[^"]*">.*?</th:block>\s*</h3>',
         f'<h3>ZAP Version: {zap_data.get("@version", "Unknown")}</h3>',
         result_html,
         flags=re.DOTALL
