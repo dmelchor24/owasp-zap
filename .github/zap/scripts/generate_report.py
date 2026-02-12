@@ -38,9 +38,12 @@ def generate_html(template, zap_data):
     
     # Extraer datos del JSON
     site = zap_data.get('site', [''])[0] if zap_data.get('site') else ''
-    alerts = zap_data.get('site', [{}])[0].get('alerts', []) if zap_data.get('site') else []
+    all_alerts = zap_data.get('site', [{}])[0].get('alerts', []) if zap_data.get('site') else []
     
-    # Contar alertas por riesgo
+    # Filtrar alertas para omitir las de nivel Informational (0)
+    alerts = [alert for alert in all_alerts if int(alert.get('risk', 0)) > 0]
+    
+    # Contar alertas por riesgo (solo las filtradas)
     alert_counts = count_alerts_by_risk(alerts)
     
     # Generar fecha actual
@@ -74,7 +77,8 @@ def generate_html(template, zap_data):
 			<th width="55%" align="center">Number of Alerts</th>
 		</tr>'''
     
-    for risk_level in [3, 2, 1, 0]:
+    # Solo mostrar High, Medium y Low (omitir Informational)
+    for risk_level in [3, 2, 1]:
         risk_name = get_risk_string(risk_level)
         count = alert_counts.get(risk_level, 0)
         summary_section += f'''

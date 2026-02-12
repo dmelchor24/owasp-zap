@@ -271,9 +271,6 @@ td {
 				<th:block th:if="${helper.isSystemic(alert)}">
 				<td align="center" th:text="#{report.alerts.list.systemic}">Systemic</td>
 				</th:block>
-				<th:block th:unless="${helper.isSystemic(alert)}">
-				<td align="center" th:text="${alert.childCount}">Count</td>
-				</th:block>
 			</tr>
 		</table>
 		<div class="spacer-lg"></div>
